@@ -7,14 +7,19 @@ import os
 # Get the directory of the current script
 script_dir = os.path.dirname(__file__)
 
-# Load the scaler and KNN model
+# Load the scaler and models
 try:
     scaler_path = os.path.join(script_dir, 'scaler.pkl')
+    lr_model_path = os.path.join(script_dir, 'logistic_regression_model_bank.pkl')
+    svc_model_path = os.path.join(script_dir, 'svc_model_bank.pkl')
     knn_model_path = os.path.join(script_dir, 'knn_model_bank.pkl')
+
     scaler = joblib.load(scaler_path)
+    lr_model = joblib.load(lr_model_path)
+    svc_model = joblib.load(svc_model_path)
     knn_model = joblib.load(knn_model_path)
 except FileNotFoundError:
-    st.error("Scaler or KNN model file not found. Please ensure 'scaler.pkl' and 'knn_model_bank.pkl' are in the same directory.")
+    st.error("Model or scaler files not found. Please ensure 'scaler.pkl', 'logistic_regression_model_bank.pkl', 'svc_model_bank.pkl', and 'knn_model_bank.pkl' are in the same directory as the script.")
     st.stop()
 
 # Define a function to preprocess user input
@@ -38,6 +43,7 @@ def preprocess_input(input_data):
     all_categorical_dummies = pd.get_dummies(pd.DataFrame(columns=original_categorical_cols), drop_first=True)
     X_categorical_df = X_categorical_df.reindex(columns = all_categorical_dummies.columns, fill_value=0)
 
+
     # Scale numerical columns
     X_numerical_scaled = scaler.transform(input_df[numerical_cols])
     X_numerical_scaled_df = pd.DataFrame(X_numerical_scaled, columns=numerical_cols)
@@ -48,7 +54,7 @@ def preprocess_input(input_data):
     return X_processed
 
 # Streamlit App
-st.title("Bank Customer Churn Prediction (KNN Model)")
+st.title("Bank Customer Churn Prediction")
 
 st.header("Enter Customer Details:")
 
@@ -69,6 +75,7 @@ campaign = st.number_input("Number of Contacts During This Campaign", value=1)
 pdays = st.number_input("Number of Days Since Last Contact", value=-1)
 previous = st.number_input("Number of Contacts Before This Campaign", value=0)
 poutcome = st.selectbox("Outcome of the Previous Marketing Campaign", ['unknown', 'other', 'failure', 'success'])
+
 
 # Create a dictionary with user inputs
 input_features = {
@@ -94,9 +101,13 @@ if st.button("Predict Churn"):
     # Preprocess the input data
     processed_input = preprocess_input(input_features)
 
-    # Make prediction with the KNN model
+    # Make predictions with each model
+    prediction_lr = lr_model.predict(processed_input)
+    prediction_svc = svc_model.predict(processed_input)
     prediction_knn = knn_model.predict(processed_input)
 
-    # Display prediction
-    st.subheader("Prediction Result (KNN Model):")
-    st.write(f"Prediction: {'Yes' if prediction_knn[0] == 'yes' else 'No'}")
+    # Display predictions
+    st.subheader("Prediction Results:")
+    st.write(f"Logistic Regression Prediction: {'Yes' if prediction_lr[0] == 'yes' else 'No'}")
+    st.write(f"SVC Prediction: {'Yes' if prediction_svc[0] == 'yes' else 'No'}")
+    st.write(f"KNN Prediction: {'Yes' if prediction_knn[0] == 'yes' else 'No'}")
